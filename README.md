@@ -14,6 +14,93 @@
 
 ---
 
+## 🛠️ Hướng dẫn Cài đặt Nhanh cho AMD GFX906 (ROCm 7.14)
+
+Để cài đặt và vận hành Lada trên các dòng GPU AMD **Radeon Instinct MI50 / MI60, Radeon Pro VII, Radeon VII, Vega 20**, chúng tôi sử dụng bản build **ROCm 7.14 (TheRock)** và PyTorch 2.13 được tối ưu riêng từ cộng đồng [mixa3607/ML-gfx906](https://github.com/mixa3607/ML-gfx906).
+
+> 📖 **Hướng dẫn chi tiết đầy đủ** về tinh chỉnh Kernel, Power Profile và khắc phục sự cố: Xem [docs/rocm_gfx906_setup.md](docs/rocm_gfx906_setup.md).
+
+### 1. Cài đặt Driver ROCm 7.14 (TheRock build)
+Áp dụng cho **Ubuntu 24.04 LTS (noble)** và **Linux Mint 22.x**:
+```bash
+# Thêm GPG Key
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://s3.arkprojects.space/apt-gfx906/ubuntu/gpg -o /etc/apt/keyrings/apt-gfx906.asc
+sudo chmod a+r /etc/apt/keyrings/apt-gfx906.asc
+
+# Thêm nguồn APT (luôn dùng Suites: noble)
+sudo tee /etc/apt/sources.list.d/gfx906.sources <<EOF
+Types: deb
+URIs: https://s3.arkprojects.space/apt-gfx906/ubuntu
+Suites: noble
+Components: main
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/apt-gfx906.asc
+EOF
+
+# Cài đặt gói ROCm GFX906
+sudo apt-get update && sudo apt-get install -y amdrocm7.14-gfx906
+
+# Cấp quyền GPU & nạp biến môi trường
+sudo usermod -a -G render,video $USER
+sudo tee /etc/profile.d/rocm.sh <<'EOF'
+export ROCM_PATH=/opt/rocm
+export PATH=$ROCM_PATH/bin:$PATH
+export LD_LIBRARY_PATH=$ROCM_PATH/lib:$LD_LIBRARY_PATH
+export HSA_OVERRIDE_GFX_VERSION=9.0.6
+EOF
+source /etc/profile.d/rocm.sh
+```
+
+### 2. Thiết lập Môi trường Ảo & Cài đặt PyTorch 2.13 GFX906
+Dành cho Python 3.12 (`cp312`):
+```bash
+# Clone repository
+git clone https://github.com/quangduyitx/lada_rocm_gfx906.git lada_rocm
+cd lada_rocm
+
+# Tạo venv Python 3.12
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip setuptools wheel
+
+# Tải và cài đặt PyTorch 2.13.0 GFX906 Wheels
+mkdir -p /tmp/torch-gfx906 && cd /tmp/torch-gfx906
+curl -O https://s3.arkprojects.space/py-gfx906/rocm7.14/torch-v2.13.0+gfx906.20260802001858/index.txt
+while read -r f; do
+  curl -O "https://s3.arkprojects.space/py-gfx906/rocm7.14/torch-v2.13.0+gfx906.20260802001858/$f"
+done < index.txt
+pip install *.whl
+cd - && rm -rf /tmp/torch-gfx906
+```
+
+### 3. Cài đặt Dependencies LADA & Bản vá
+```bash
+pip install "ultralytics==8.4.4" "opencv-python==4.12.0.88" "mmengine==0.10.7" "av>=16.1.0" customtkinter packaging requests tqdm wcwidth
+pip install -e . --no-deps
+
+# Áp dụng các bản vá
+patch -u -p1 -d .venv/lib/python3.12/site-packages < patches/increase_mms_time_limit.patch
+patch -u -p1 -d .venv/lib/python3.12/site-packages < patches/remove_ultralytics_telemetry.patch
+patch -u -p1 -d .venv/lib/python3.12/site-packages < patches/fix_loading_mmengine_weights_on_torch26_and_higher.diff
+
+# Tải Model Weights
+mkdir -p model_weights
+wget 'https://huggingface.co/ladaapp/lada/resolve/main/lada_mosaic_detection_model_v4_fast.pt?download=true' -O model_weights/lada_mosaic_detection_model_v4_fast.pt
+wget 'https://huggingface.co/ladaapp/lada/resolve/main/lada_mosaic_restoration_model_generic_v1.2.pth?download=true' -O model_weights/lada_mosaic_restoration_model_generic_v1.2.pth
+```
+
+### 4. Khởi chạy
+```bash
+# Chạy Giao diện Studio GUI:
+./lada_rocm.sh
+
+# Hoặc chạy dòng lệnh CLI:
+./lada_rocm_cli.sh --input video.mp4 --device cuda:0
+```
+
+---
+
 *Lada* is a tool designed to recover pixelated adult videos (JAV). It helps restore the visual quality of such content, making it more enjoyable to watch.
 
 ## Features
@@ -201,4 +288,5 @@ This project builds upon work done by these fantastic individuals and projects:
 * [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN): Used their image degradation model design for our mosaic detection model degradation pipeline.
 * [BPJDet](https://github.com/hnuzhy/BPJDet): Model for detecting human body and head. Used for creating SFW mosaics so that mosaic detection model can be trained so skip such material. 
 * [CenterFace](https://github.com/Star-Clouds/CenterFace): Model for detecting human faces. Used for creating SFW mosaics so that mosaic detection model can be trained so skip such material. 
+* [mixa3607/ML-gfx906](https://github.com/mixa3607/ML-gfx906) & [Ark Projects](https://arkprojects.space/wiki/AMD_GFX906): Provided ROCm 7.14 (TheRock) APT repository and PyTorch 2.13 wheels built specifically for AMD GFX906 architecture.
 * PyTorch, FFmpeg, GStreamer, GTK and [all other folks building our ecosystem](https://xkcd.com/2347/)

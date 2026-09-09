@@ -42,10 +42,14 @@ This section provides instructions for installing the app (CLI and GUI) from sou
    
    | Extra        | Supported GPU architectures                                                                                                                                          | Graphics Driver / Prerequisites                                                                                                                                                                                                               | Notes                                                              |
    |--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+   | amd-rocm     | AMD GFX906 (Radeon Instinct MI50/MI60, Radeon Pro VII, Radeon VII, Vega 20)                                                                                         | ROCm 7.14 (TheRock) + PyTorch 2.13.0 GFX906. See [ROCm GFX906 Setup Guide](rocm_gfx906_setup.md)                                                                                                                                              | Native PyTorch GPU acceleration with Deformable Conv2D            |
    | nvida-legacy | Nvidia Maxwell(5.0), Pascal(6.0), Volta(7.0), Turing(7.5), Ampere(8.0, 8.6), Hopper(9.0)                                                                             | Nvidia GPU driver version >= 560                                                                                                                                                                                                              | For RTX 10xx                                                       |
    | nvidia       | Nvidia Volta(7.0), Turing(7.5), Ampere(8.0, 8.6), Hopper(9.0), Blackwell(10.0, 12.0)                                                                                 | Nvidia GPU driver version >= 570                                                                                                                                                                                                              | For RTX 16xx, RTX 20xx up to including RTX 50xx                    |
    | intel        | Intel Discrete Arc GPUs: A-series (Alchemist), B-series (Battlemage)<br/>Intel Integrated Arc GPUs of Core Ultra Processors: Meteor Lake-H, Arrow Lake-H, Lunar Lake | **Ubuntu**: [Intel GPU Driver Installation docs](https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu/2-9.html)<br/>**Arch Linux**: `sudo pacman -Syu intel-compute-runtime level-zero-loader` |                                                                    |
    | cpu          | -                                                                                                                                                                    |                                                                                                                                                                                                                                               | Running Lada on CPU will be so slow that it's not really practical |
+
+   > [!TIP]
+   > **AMD ROCm Users:** For AMD GPUs (especially GFX906 architecture like Radeon Instinct MI50 / Radeon Pro VII / Vega 20), please refer to the dedicated **[ROCm GFX906 Setup Guide](rocm_gfx906_setup.md)** for ROCm 7.14 installation and Python 3.12 PyTorch wheels.
 
    Based on your hardware, select the appropriate *extra* from the table above and install it with uv.
 
@@ -58,7 +62,7 @@ This section provides instructions for installing the app (CLI and GUI) from sou
    Before continuing let's test if the installation was successful by checking if [PyTorch](https://pytorch.org) detects your GPU (skip if using CPU):
 
    ```bash
-   # Nvidia
+   # Nvidia / AMD ROCm
    uv run --no-project python -c "import torch ; print(torch.cuda.is_available())"
    # Intel
    uv run --no-project python -c "import torch ; print(torch.xpu.is_available())"
