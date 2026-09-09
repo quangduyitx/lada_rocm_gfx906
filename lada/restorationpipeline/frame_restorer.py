@@ -261,7 +261,25 @@ class FrameRestorer:
                     logger.debug("clip restoration worker: restored_clip_queue producer unblocked")
                     break
             else:
+                t_start = time.time()
+                clip_len = len(clip.frames)
+                cid = getattr(clip, 'clip_counter', getattr(clip, 'id', 0))
+                msg_start = f"[AI Phục hồi GPU] 🚀 GPU AMD đang xử lý Clip #{cid} (Frames {clip.frame_start} -> {clip.frame_end}, {clip_len} frames)..."
+                try:
+                    from tqdm import tqdm
+                    tqdm.write(msg_start)
+                except Exception:
+                    print(msg_start, flush=True)
+
                 self._restore_clip(clip)
+                dt = time.time() - t_start
+                fps = clip_len / max(dt, 0.001)
+                msg_end = f"[AI Phục hồi GPU] ✔ Hoàn tất Clip #{cid} trong {dt:.2f}s ({fps:.1f} it/s)"
+                try:
+                    from tqdm import tqdm
+                    tqdm.write(msg_end)
+                except Exception:
+                    print(msg_end, flush=True)
                 # Release MPS driver cached memory to prevent unbounded growth
                 if self.device.type == 'mps' and hasattr(torch.mps, 'empty_cache'):
                     torch.mps.empty_cache()

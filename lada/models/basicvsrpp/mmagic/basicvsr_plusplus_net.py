@@ -12,7 +12,7 @@ from mmengine.model.weight_init import constant_init, kaiming_init
 from mmengine.runner import load_checkpoint
 from torch import Tensor
 
-from lada.models.basicvsrpp.deformconv import ModulatedDeformConv2d
+from lada.models.basicvsrpp.deformconv import ModulatedDeformConv2d, deform_conv2d_fallback
 from .flow_warp import flow_warp
 from .model_utils import default_init_weights
 from .model_utils import make_layer
@@ -324,9 +324,9 @@ class SecondOrderDeformableAlignment(ModulatedDeformConv2d):
         # mask
         mask = torch.sigmoid(mask)
 
-        return torchvision.ops.deform_conv2d(x, offset, self.weight, self.bias,
-                                             self.stride, self.padding,
-                                             self.dilation, mask)
+        return deform_conv2d_fallback(x, offset, self.weight, self.bias,
+                                      self.stride, self.padding,
+                                      self.dilation, mask)
 
 class ResidualBlocksWithInputConv(BaseModule):
     """Residual blocks with a convolution in front.

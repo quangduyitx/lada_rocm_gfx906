@@ -112,6 +112,8 @@ def setup_argparser() -> argparse.ArgumentParser:
 def process_video_file(input_path: str, output_path: str, temp_dir_path: str, device: torch.device, mosaic_restoration_model, mosaic_detection_model,
                        mosaic_restoration_model_name, preferred_pad_mode, max_clip_length, encoder: str, encoder_options: str, mp4_fast_start):
     video_metadata = get_video_meta_data(input_path)
+    print(f"\n[Khởi tạo] 🎬 Video: {os.path.basename(input_path)} | {video_metadata.video_width}x{video_metadata.video_height} | {video_metadata.frames_count} frames ({video_metadata.duration:.1f}s, {video_metadata.video_fps:.1f} fps)", flush=True)
+    print(f"[Cấu hình] ⚙️ Thiết bị: {device} | Khôi phục: {mosaic_restoration_model_name} | Clip tối đa: {max_clip_length} frames | Bộ mã hóa: {encoder}", flush=True)
 
     frame_restorer = FrameRestorer(device, input_path, max_clip_length, mosaic_restoration_model_name,
                  mosaic_detection_model, mosaic_restoration_model, preferred_pad_mode)
@@ -145,8 +147,9 @@ def process_video_file(input_path: str, output_path: str, temp_dir_path: str, de
         frame_restorer_progressbar.close(ensure_completed_bar=success)
 
     if success:
-        print(_("Processing audio"))
+        print("[Âm thanh] 🎵 Đang trích xuất và đồng bộ âm thanh gốc...", flush=True)
         audio_utils.combine_audio_video_files(video_metadata, video_tmp_file_output_path, output_path)
+        print(f"[Hoàn thành] 🎉 Đã lưu video hoàn chỉnh tại: {output_path}", flush=True)
     else:
         if os.path.exists(video_tmp_file_output_path):
             os.remove(video_tmp_file_output_path)

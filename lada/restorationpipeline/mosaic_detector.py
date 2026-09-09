@@ -80,6 +80,7 @@ class Scene:
 class Clip:
     def __init__(self, scene: Scene, size, pad_mode, id):
         self.id = id
+        self.clip_counter = id
         self.file_path = scene.file_path
         self.frame_start = scene.frame_start
         self.frame_end = scene.frame_end
@@ -251,7 +252,14 @@ class MosaicDetector:
                         completed_scenes.append(other_scene)
 
         for completed_scene in sorted(completed_scenes, key=lambda s: s.frame_start):
+            scene_len = len(completed_scene.frames)
             clip = Clip(completed_scene, self.clip_size, self.pad_mode, self.clip_counter)
+            msg_clip = f"[Gom cảnh #{self.clip_counter}] 📦 Đã gom đoạn mosaic: frames {clip.frame_start} -> {clip.frame_end} ({scene_len} frames) ➔ Gửi sang hàng đợi AI GPU"
+            try:
+                from tqdm import tqdm
+                tqdm.write(msg_clip)
+            except Exception:
+                print(msg_clip, flush=True)
             self.mosaic_clip_queue.put(clip)
             if self.stop_requested:
                 logger.debug("frame detector worker: mosaic_clip_queue producer unblocked")
@@ -333,6 +341,12 @@ class MosaicDetector:
             frames_batch, frames, frame_num = frames_data
 
             batch_prediction_results = self.model.inference_and_postprocess(frames_batch, frames)
+            if frame_num == self.start_frame:
+                try:
+                    from tqdm import tqdm
+                    tqdm.write(f"[YOLO Quét] 🔍 Bắt đầu quét phát hiện mosaic trên toàn bộ video...")
+                except Exception:
+                    print(f"[YOLO Quét] 🔍 Bắt đầu quét phát hiện mosaic trên toàn bộ video...", flush=True)
 
             self.inference_queue.put((batch_prediction_results, frames_batch, frame_num))
             if self.stop_requested:
