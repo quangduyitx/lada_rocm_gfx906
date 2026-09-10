@@ -19,7 +19,14 @@ export OPENBLAS_NUM_THREADS=4
 export MKL_NUM_THREADS=4
 export OMP_WAIT_POLICY=PASSIVE
 
+export PYTHONPATH="$SCRIPT_DIR:${PYTHONPATH:-}"
 export PATH="/opt/rocm/bin:$HOME/.local/bin:$SCRIPT_DIR/.venv/bin:$PATH"
 export LD_LIBRARY_PATH="/opt/rocm/lib:${LD_LIBRARY_PATH:-}"
 
-exec "$SCRIPT_DIR/.venv/bin/lada-cli" "$@"
+if [ -x "$SCRIPT_DIR/.venv/bin/python3" ]; then
+    PY_CMD="$SCRIPT_DIR/.venv/bin/python3"
+else
+    PY_CMD="python3"
+fi
+
+exec "$PY_CMD" -m lada.cli.main "$@"

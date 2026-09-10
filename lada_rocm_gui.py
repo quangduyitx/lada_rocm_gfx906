@@ -28,8 +28,10 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-VENV_PYTHON = SCRIPT_DIR / ".venv" / "bin" / "python"
-LADA_CLI = SCRIPT_DIR / ".venv" / "bin" / "lada-cli"
+VENV_PYTHON = SCRIPT_DIR / ".venv" / "bin" / "python3"
+if not VENV_PYTHON.exists():
+    VENV_PYTHON = Path(sys.executable)
+LADA_CLI_CMD = [str(VENV_PYTHON), "-m", "lada.cli.main"]
 MODEL_WEIGHTS_DIR = SCRIPT_DIR / "model_weights"
 ICON_FILE = SCRIPT_DIR / "assets" / "io.github.ladaapp.lada.png"
 
@@ -591,7 +593,7 @@ class LadaRocmApp(ctk.CTk):
         face_ignore = self.var_face_ignore.get()
 
         cmd = [
-            str(LADA_CLI),
+            *LADA_CLI_CMD,
             "--input", input_path,
             "--device", "cuda:0",
             "--mosaic-detection-model", det_model,
